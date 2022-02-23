@@ -19,16 +19,16 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/btcsuite/btcd/btcec"
+	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"golang.org/x/crypto/hkdf"
 )
 
 //Encrypt a message using an EC public key as a start
 //Internally an ephemeral key is generated.
 //If kdf flag is true, then hkdf will be used to  derive the key from the shared secret
-func ECEncryptPub(pubkey *btcec.PublicKey, msg []byte, kdf bool) ([]byte, error) {
+func ECEncryptPub(pubkey *secp256k1.PublicKey, msg []byte, kdf bool) ([]byte, error) {
 	// Generate ephemeral key
-	ek, err := btcec.NewPrivateKey(btcec.S256())
+	ek, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
 		return nil, err
 	}
@@ -39,13 +39,13 @@ func ECEncryptPub(pubkey *btcec.PublicKey, msg []byte, kdf bool) ([]byte, error)
 // returns ciphertext or encryption error
 // The byte slice returned conatins the ethpemeral public key [0-64], the iv [65-76],
 // and the cipthertext with auth tag at the end
-func ECEncryptPubPriv(pubkey *btcec.PublicKey, ephKey *btcec.PrivateKey, msg []byte, kdf bool) ([]byte, error) {
+func ECEncryptPubPriv(pubkey *secp256k1.PublicKey, ephKey *secp256k1.PrivateKey, msg []byte, kdf bool) ([]byte, error) {
 	var ct bytes.Buffer
 
 	ct.Write(ephKey.PubKey().SerializeUncompressed())
 
 	// Derive shared secret
-	ss := btcec.GenerateSharedSecret(ephKey, pubkey)
+	ss := secp256k1.GenerateSharedSecret(ephKey, pubkey)
 	var sk []byte
 	if kdf {
 		// Derive synkey from shared secret
@@ -84,16 +84,17 @@ func ECEncryptPubPriv(pubkey *btcec.PublicKey, ephKey *btcec.PrivateKey, msg []b
 }
 
 //Recovers the ephemeral key and calls ECDecryptPrivPub()
-func ECDecryptPriv(privkey *btcec.PrivateKey, msg []byte, kdf bool) ([]byte, error) {
+func ECDecryptPriv(privkey *secp256k1.PrivateKey, msg []byte, kdf bool) ([]byte, error) {
 	// Recover ephemeral sender public key
 	if len(msg) < (1 + 32 + 32 + 12 + 16) {
 		return nil, fmt.Errorf("invalid length of message")
 	}
 
-	ethPubkey := &btcec.PublicKey{
-		Curve: btcec.S256(),
-		X:     new(big.Int).SetBytes(msg[1:33]),
-		Y:     new(big.Int).SetBytes(msg[33:65]),
+	ethPubkey := &secp256k1.PublicKey{
+		Curve: secp256k1.S256(),
+
+		X: new(big.Int).SetBytes(msg[1:33]),
+		Y: new(big.Int).SetBytes(msg[33:65]),
 	}
 	msg = msg[65:]
 	return ECDecryptPrivPub(privkey, ethPubkey, msg, kdf)
@@ -101,11 +102,11 @@ func ECDecryptPriv(privkey *btcec.PrivateKey, msg []byte, kdf bool) ([]byte, err
 
 // Decrypt decrypts a passed message with a receiver private key and ephemeral public key
 // returns plaintext or decryption error
-func ECDecryptPrivPub(privkey *btcec.PrivateKey, pubkey *btcec.PublicKey, msg []byte, kdf bool) ([]byte, error) {
+func ECDecryptPrivPub(privkey *secp256k1.PrivateKey, pubkey *secp256k1.PublicKey, msg []byte, kdf bool) ([]byte, error) {
 	// Message cannot be less than length of public key (65) + nonce (16) + tag (16)
 
 	// Derive shared secret
-	ss := btcec.GenerateSharedSecret(privkey, pubkey)
+	ss := secp256k1.GenerateSharedSecret(privkey, pubkey)
 	var skey []byte
 	if kdf { // Derive shared symmetric key from the secret
 		var err error
@@ -229,7 +230,7 @@ type ecPrivateKey struct {
 
 const SEKPC256K1OID = "2b8104000a"
 
-func ParseKoblitzPubPem(pemstring string) (*btcec.PublicKey, error) {
+func ParseKoblitzPubPem(pemstring string) (*secp256k1.PublicKey, error) {
 	blk, _ := pem.Decode([]byte(pemstring))
 	if blk == nil {
 		return nil, fmt.Errorf("Null Block")
@@ -237,12 +238,12 @@ func ParseKoblitzPubPem(pemstring string) (*btcec.PublicKey, error) {
 	if len(blk.Bytes) < len(ecPubKeyPreamble) {
 		return nil, fmt.Errorf("Block too short")
 	}
-	return btcec.ParsePubKey(blk.Bytes[len(ecPubKeyPreamble):], btcec.S256())
+	return secp256k1.ParsePubKey(blk.Bytes[len(ecPubKeyPreamble):])
 
 }
 
 //TODO Rhis is a hack because I cannot do any better parsing asn1 :-(
-func ParseKoblitzPrivPem(pemstring string) (*btcec.PrivateKey, error) {
+func ParseKoblitzPrivPem(pemstring string) (*secp256k1.PrivateKey, error) {
 	blk, _ := pem.Decode([]byte(pemstring))
 	if blk == nil {
 		return nil, fmt.Errorf("Null Block")
@@ -251,6 +252,6 @@ func ParseKoblitzPrivPem(pemstring string) (*btcec.PrivateKey, error) {
 		return nil, fmt.Errorf("Block too short")
 	}
 	keybytes := blk.Bytes[7:39]
-	pk, _ := btcec.PrivKeyFromBytes(btcec.S256(), keybytes)
+	pk, _ := secp256k1.PrivKeyFromBytes(keybytes)
 	return pk, nil
 }

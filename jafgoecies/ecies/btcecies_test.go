@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec"
+	secp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v2"
 )
 
-var privKey *btcec.PrivateKey
+var privKey *secp256k1.PrivateKey
 var ciphertext []byte
 
 func ECEncryptDecrypt(t *testing.T, kdf bool) {
-	privKey, err := btcec.NewPrivateKey(btcec.S256())
+	privKey, err := secp256k1.GeneratePrivateKey()
 	fmt.Printf("Priv key %x\n", privKey.Serialize())
 	if err != nil {
 		t.Fatal(err)
