@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"strings"
 )
 
@@ -14,21 +15,24 @@ type Renderer struct {
 
 func NewRenderer() *Renderer {
 	r := &Renderer{}
-	r.LoadTemplates()
+	r.LoadTemplates("")
 	return r
 }
 
 //Taken out of the constructor with the idea of forced template reloading
-func (r *Renderer) LoadTemplates() {
+func (r *Renderer) LoadTemplates(templatedir string) {
+	if len(templatedir) == 0 {
+		templatedir = "./templates"
+	}
 	var allFiles []string
-	files, err := ioutil.ReadDir("./templates")
+	files, err := ioutil.ReadDir(templatedir)
 	if err != nil {
 		log.Println(err)
 	}
 	for _, file := range files {
 		filename := file.Name()
 		if strings.HasSuffix(filename, ".htemplate") {
-			allFiles = append(allFiles, "./templates/"+filename)
+			allFiles = append(allFiles, templatedir+"/"+filename)
 		}
 	}
 	r.templates, err = template.ParseFiles(allFiles...) //parses all .tmpl files in the 'templates' folder
@@ -64,4 +68,5 @@ type RenderData struct {
 	HeaderData   interface{}
 	BodyData     interface{}
 	FooterData   interface{}
+	SessionID    *http.Cookie
 }

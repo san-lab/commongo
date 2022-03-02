@@ -1,0 +1,25 @@
+{{define "test"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Integer Partition ZK Test</title>
+    
+</head>
+<body >
+
+
+{{with .SessionID}}
+    {{.Name}} <br/>
+    {{.Value}}<br/>
+    {{.Expires}}<br/>
+    {{.Path}}<br/>
+    {{.Domain}}<br/>
+    {{.MaxAge}}<br/>
+    {{.Raw}}<br/>
+
+{{end}}
+
+</body>
+</html>
+{{end}}
