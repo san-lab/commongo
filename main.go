@@ -2,8 +2,9 @@ package main
 
 import (
 	"net/http"
-	"san-lab/commongo/gohttpservice"
-	"san-lab/commongo/gohttpservice/templates"
+
+	"github.com/san-lab/commongo/gohttpservice"
+	"github.com/san-lab/commongo/gohttpservice/templates"
 )
 
 func main() {

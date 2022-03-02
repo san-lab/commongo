@@ -1,4 +1,4 @@
-module san-lab/commongo
+module github.com/san-lab/commongo
 
 go 1.17
 
